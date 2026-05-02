@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Lokasi {
+  id        String   @id @default(uuid())
+  kode      String   @unique
+  nama      String
+  deskripsi String?
+  barang    Barang[]
+}
+
+model Gudang {
+  id        String      @id @default(uuid())
+  kode      String      @unique
+  nama      String
+  deskripsi String?
+  zona      String      @default("WARM") // HOT, WARM, COLD
+  kapasitas Int         @default(100)
+  status    String      @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt DateTime    @default(now())
+  barang    Barang[]    @relation("BarangGudang")
+  transaksi Transaksi[]
+}
+
+model Barang {
+  id            String      @id @default(uuid())
+  kode_sku      String      @unique
+  nama_barang   String
+  kategori      String
+  jumlah_stok   Int
+  lokasi_rak    String?     // Legacy field, kept for backward compatibility
+  lokasiId      String?
+  lokasi        Lokasi?     @relation(fields: [lokasiId], references: [id])
+  gudangId      String?
+  gudang        Gudang?     @relation("BarangGudang", fields: [gudangId], references: [id])
+  tanggal_masuk DateTime    @default(now())
+  transaksi     Transaksi[]
+}
+
+model Transaksi {
+  id            String   @id @default(uuid())
+  barangId      String
+  jenis         String   // "IN" atau "OUT"
+  jumlah        Int
+  keterangan    String?
+  gudangId      String?
+  supplier      String?  // Nama supplier (untuk Inbound)
+  noPO          String?  // Nomor Purchase Order
+  tujuan        String?  // Tujuan pengiriman (untuk Outbound)
+  penerima      String?  // Nama penerima (untuk Outbound)
+  tanggal       DateTime @default(now())
+
+  barang        Barang   @relation(fields: [barangId], references: [id], onDelete: Cascade)
+  gudang        Gudang?  @relation(fields: [gudangId], references: [id])
+}
